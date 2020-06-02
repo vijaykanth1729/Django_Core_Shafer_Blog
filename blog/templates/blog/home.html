@@ -1,0 +1,10 @@
+{% extends 'blog/base.html' %}
+{% block content %}
+{% for post in posts %}
+  <img class="rounded-circle" src="{{ post.author.profile.image.url }}">
+  <h1><a href="{% url 'post-detail' post.pk %}">{{ post.title }}</a></h1>
+  <p>{{ post.content }}</p>
+  <p>Written by {{ post.author }} on {{ post.date_posted|date:"M d, Y" }} </p>
+
+{% endfor %}
+{% endblock %}

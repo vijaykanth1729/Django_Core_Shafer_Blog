@@ -1,0 +1,6 @@
+{% extends 'blog/base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+<h1>You have been logged out successfully!</h1>
+<p>Do you want to login again? <a href="{% url 'login' %}">Login</a></p>
+{% endblock %}
