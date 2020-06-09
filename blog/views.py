@@ -1,7 +1,8 @@
-from django.shortcuts import render, redirect
-from .models import Post
-from .forms import CreatePostForm
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import Post,Comment
+from .forms import CreatePostForm, CommentForm
 from django.contrib import messages
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 #class based views follows...
 from django.views.generic import (ListView,
@@ -18,9 +19,22 @@ class PostListView(ListView):
     # Looks for blog/post_list.html
     context_object_name = 'posts'  #looks for object_list(Default)
     ordering = ['-date_posted']
+    paginate_by = 2
 
-class PostDetailView(DetailView):
+class UserPostListView(ListView):
     model = Post
+    template_name = 'blog/user_posts.html' #by default looks for (<app_name>/<model>_<viewtype.html>)
+    # Looks for blog/post_list.html
+    context_object_name = 'posts'  #looks for object_list(Default)
+    #ordering = ['-date_posted']
+    paginate_by = 2
+
+    def get_queryset(self):
+        user = get_object_or_404(User, username = self.kwargs.get('username'))
+        return Post.objects.filter(author=user).order_by('-date_posted')
+
+# class PostDetailView(DetailView):
+#     model = Post
     # default template looks for blog/post_detail.html
     # default context objects it looks for 'object'
 
@@ -57,15 +71,49 @@ class PostDeleteView(LoginRequiredMixin,UserPassesTestMixin,DeleteView):
         if self.request.user == post.author:
             return True
         return False
-#Function based views follows....
+
+def all_comments(request):
+    comments = Comment.objects.all()
+    context = {
+        'comments':comments
+    }
+    return render(request, 'blog/post_detail.html', context)
+
+def post_detail(request,pk):
+    object = get_object_or_404(Post,id=pk)
+    comments = Comment.objects.all().filter(post_id=pk)
+    post = get_object_or_404(Post, id=pk)
+    if request.method == "POST":
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            text = form.cleaned_data.get('message')
+            data = form.save(commit=False)
+            data.user_id = request.user
+            data.post_id = post
+            data.save()
+            return redirect('home')
+    else:
+        form = CommentForm()
+
+    context = {
+        'object':object,
+        'comments':comments,
+        'posts':post,
+        'form':form,
+        #'current_user':current_user,
+    }
+    return render(request, 'blog/detail_page.html', context)
 
 def home(request):
     context = {
         'posts': Post.objects.all()
     }
     return render(request, 'blog/home.html', context)
+
+
 def about(request):
     return render(request, 'blog/about.html')
+
 
 @login_required
 def create_post(request):
